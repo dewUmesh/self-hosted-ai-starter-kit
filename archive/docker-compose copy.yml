@@ -1,4 +1,8 @@
-
+volumes:
+  n8n_storage:
+  postgres_storage:
+  ollama_storage:
+  qdrant_storage:
 
 networks:
   demo:
@@ -26,14 +30,14 @@ x-ollama: &service-ollama
   ports:
     - 11434:11434
   volumes:
-    - ${OLLAMA_STORAGE_PATH}:/root/.ollama
+    - ollama_storage:/root/.ollama
 
 x-init-ollama: &init-ollama
   image: ollama/ollama:latest
   networks: ['demo']
   container_name: ollama-pull-llama
   volumes:
-    - ${OLLAMA_STORAGE_PATH}:/root/.ollama
+    - ollama_storage:/root/.ollama
   entrypoint: /bin/sh
   command:
     - "-c"
@@ -49,9 +53,7 @@ services:
       - POSTGRES_PASSWORD
       - POSTGRES_DB
     volumes:
-      - ${POSTGRES_STORAGE_PATH}:/var/lib/postgresql/data
-    ports:
-      - 5432:5432
+      - postgres_storage:/var/lib/postgresql/data
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -h localhost -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
       interval: 5s
@@ -78,10 +80,9 @@ services:
     ports:
       - 5678:5678
     volumes:
-      - ${N8N_STORAGE_PATH}:/home/node/.n8n
-      - ${N8N_DOCS_PATH}:/home/node/
-      - ${N8N_BACKUP_PATH}:/backup
-      - ${N8N_SHARED_PATH}:/data/shared
+      - n8n_storage:/home/node/.n8n
+      - ./n8n/backup:/backup
+      - ./shared:/data/shared
     depends_on:
       postgres:
         condition: service_healthy
@@ -96,7 +97,7 @@ services:
     ports:
       - 6333:6333
     volumes:
-      - ${QDRANT_STORAGE_PATH}:/qdrant/storage
+      - qdrant_storage:/qdrant/storage
 
   ollama-cpu:
     profiles: ["cpu"]
